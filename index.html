@@ -795,11 +795,18 @@ document.getElementById('audioInput').addEventListener('change', function(e) {
 (function tryAutoLoad() {
   const a = new Audio('audio_narracao.mp3');
   a.oncanplaythrough = () => {
-    document.getElementById('bgAudio').src = 'audio_narracao.mp3';
+    const bgAudio = document.getElementById('bgAudio');
+    bgAudio.src = 'audio_narracao.mp3';
     const btn = document.getElementById('playBtn');
     btn.style.display = 'block';
     document.getElementById('audioStatus').textContent = '✓ audio_narracao.mp3';
     document.getElementById('audioStatus').style.color = 'var(--red)';
+    setTimeout(() => {
+      bgAudio.play().then(() => {
+        btn.textContent = '⏸ PAUSE';
+        isPlaying = true;
+      }).catch(() => {});
+    }, 5000);
   };
 })();
 
