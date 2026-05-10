@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vozes Contra o Silêncio</title>
+<!--
+  ═══════════════════════════════════════════════════
+  ESTRUTURA DE ARQUIVOS — coloque tudo na mesma pasta
+  ═══════════════════════════════════════════════════
+  📁 feminicidio/
+     ├── index.html          ← este arquivo
+     ├── video_vela.mp4      ← clipe da vela (Veo)
+     ├── video_lagrima.mp4   ← clipe da lágrima (Veo)
+     ├── video_cadeira.mp4   ← clipe da cadeira (Veo)
+     └── audio_narracao.mp3  ← narração ElevenLabs (opcional — pode carregar pelo botão)
+  ═══════════════════════════════════════════════════
+-->
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300;1,400&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --black: #060606;
+  --deep: #0d0d0d;
+  --red: #bf2626;
+  --red-bright: #e53030;
+  --red-dim: #791818;
+  --cream: #e6ddd0;
+  --gray: #5a5a5a;
+  --border: rgba(255,255,255,0.06);
+}
+
+html, body {
+  width: 100%; height: 100%;
+  overflow: hidden;
+  background: var(--black);
+  color: var(--cream);
+  font-family: 'Crimson Pro', Georgia, serif;
+}
+
+/* GRAIN */
+body::after {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none; z-index: 9000; opacity: 0.45;
+}
+
+/* ─── AUDIO BAR ─── */
+#audioBar {
+  position: fixed; top: 0; left: 0; right: 0; height: 46px;
+  background: rgba(6,6,6,0.97);
+  border-bottom: 1px solid var(--red-dim);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 2rem; z-index: 800;
+}
+.ab-logo {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; letter-spacing: 0.22em; color: var(--red);
+}
+.ab-right { display: flex; align-items: center; gap: 10px; }
+#audioStatus { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--gray); }
+#audioUploadLabel {
+  font-family: 'JetBrains Mono', monospace; font-size: 10px;
+  color: var(--gray); border: 1px solid var(--red-dim);
+  padding: 3px 12px; cursor: pointer; transition: all 0.2s; letter-spacing: 0.04em;
+}
+#audioUploadLabel:hover { background: rgba(191,38,38,0.18); color: var(--cream); }
+#audioInput { display: none; }
+#playBtn {
+  font-family: 'JetBrains Mono', monospace; font-size: 10px;
+  background: var(--red); color: #fff; border: none;
+  padding: 3px 14px; cursor: pointer; display: none;
+  letter-spacing: 0.04em; transition: background 0.2s;
+}
+#playBtn:hover { background: var(--red-bright); }
+#autoBtn {
+  font-family: 'JetBrains Mono', monospace; font-size: 9px;
+  background: transparent; color: var(--gray);
+  border: 1px solid rgba(255,255,255,0.1);
+  padding: 3px 10px; cursor: pointer; letter-spacing: 0.04em; transition: all 0.2s;
+}
+#autoBtn:hover { color: var(--cream); border-color: var(--gray); }
+
+/* ─── TIMER LINE ─── */
+#timerLine {
+  position: fixed; top: 46px; left: 0; right: 0; height: 2px; z-index: 799;
+}
+#timerFill { height: 100%; background: rgba(191,38,38,0.45); width: 0; transition: width linear; }
+
+/* ─── SLIDES CONTAINER ─── */
+#slides { position: fixed; inset: 46px 0 14px; overflow: hidden; }
+
+/* ─── SLIDE BASE ─── */
+.slide {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  justify-content: center; padding: 3rem 7vw;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.9s ease;
+}
+.slide.active { opacity: 1; pointer-events: all; }
+.slide.center { align-items: center; text-align: center; }
+
+/* ─── VIDEO BACKGROUND ─── */
+.slide-video {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover; z-index: 1;
+}
+.video-overlay {
+  position: absolute; inset: 0; z-index: 2;
+  background: rgba(0,0,0,0.62);
+}
+.slide > *:not(.slide-video):not(.video-overlay):not(.petals-wrap):not(.hands-svg) {
+  position: relative; z-index: 5;
+}
+
+/* ─── TYPOGRAPHY ─── */
+.eyebrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: clamp(9px,1vw,11px); color: var(--red);
+  letter-spacing: 0.28em; text-transform: uppercase;
+  margin-bottom: 1.8rem;
+}
+.eyebrow::before { content: '— '; }
+
+.giant {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(100px,21vw,260px);
+  line-height: 0.84; letter-spacing: -0.02em;
+}
+.giant .r { color: var(--red-bright); }
+
+.headline {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(44px,8.5vw,108px);
+  line-height: 0.9; letter-spacing: -0.01em;
+}
+
+.body-text {
+  font-size: clamp(15px,1.9vw,22px);
+  font-weight: 300; font-style: italic;
+  color: rgba(230,221,208,0.65);
+  line-height: 1.55; margin-top: 1.4rem; max-width: 680px;
+}
+
+.mono-note {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: clamp(9px,0.9vw,11px); color: var(--gray);
+  letter-spacing: 0.08em; margin-top: 1rem; line-height: 1.8;
+}
+
+.red-rule { width: 44px; height: 2px; background: var(--red); margin: 1.4rem 0; }
+.red-rule.c { margin: 1.4rem auto; }
+
+/* ─── STAT GRID ─── */
+.stat-grid {
+  display: grid; grid-template-columns: repeat(4,1fr);
+  gap: 1px; background: var(--border);
+  border: 1px solid var(--border); width: 100%; margin-top: 1.8rem;
+}
+@media(max-width:900px){ .stat-grid { grid-template-columns: repeat(2,1fr); } }
+.stat-cell {
+  background: rgba(13,13,13,0.9); padding: 1.8rem 1.4rem;
+  border-bottom: 2px solid transparent; transition: border-color 0.4s;
+}
+.slide.active .stat-cell:nth-child(1){ border-color:var(--red); transition-delay:0.2s; }
+.slide.active .stat-cell:nth-child(2){ border-color:var(--red); transition-delay:0.5s; }
+.slide.active .stat-cell:nth-child(3){ border-color:var(--red); transition-delay:0.8s; }
+.slide.active .stat-cell:nth-child(4){ border-color:var(--red); transition-delay:1.1s; }
+.stat-num {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(40px,5.5vw,68px); color: var(--red-bright); line-height: 1; display: block;
+}
+.stat-label { font-size: clamp(12px,1.3vw,15px); font-weight:300; color:rgba(230,221,208,0.6); margin-top:0.4rem; line-height:1.35; }
+.stat-src { font-family:'JetBrains Mono',monospace; font-size:8px; color:var(--gray); margin-top:0.7rem; }
+
+/* ─── TWO COL ─── */
+.two-col { display:grid; grid-template-columns:1fr 1fr; gap:4vw; width:100%; align-items:start; }
+@media(max-width:800px){ .two-col { grid-template-columns:1fr; } }
+
+/* ─── BAR CHART ─── */
+.bar-section { margin-top: 1.5rem; }
+.bar-label-top { font-family:'JetBrains Mono',monospace; font-size:9px; color:var(--gray); letter-spacing:0.2em; margin-bottom:10px; }
+.bar-row { display:grid; grid-template-columns:52px 1fr 52px; gap:10px; align-items:center; margin-bottom:9px; }
+.bar-year { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--gray); text-align:right; }
+.bar-track { background:rgba(255,255,255,0.05); height:28px; overflow:hidden; }
+.bar-fill { height:100%; width:0; transition:width 1.3s cubic-bezier(0.4,0,0.2,1); }
+.bar-fill.pe { background:linear-gradient(to right,#5a1010,#e53030); }
+.bar-fill.sp { background:linear-gradient(to right,#3d0a0a,#e53030); }
+.bar-val { font-family:'Bebas Neue',sans-serif; font-size:22px; color:var(--cream); }
+
+/* ─── CASE LIST ─── */
+.case-list { width:100%; margin-top:1.4rem; display:flex; flex-direction:column; gap:9px; }
+.case-item {
+  padding:0.9rem 1.2rem;
+  background:rgba(191,38,38,0.05); border-left:3px solid var(--red-dim);
+  opacity:0; transform:translateX(-18px); transition:all 0.5s;
+}
+.slide.active .case-item:nth-child(1){ opacity:1; transform:none; transition-delay:0.3s; }
+.slide.active .case-item:nth-child(2){ opacity:1; transform:none; transition-delay:0.6s; }
+.slide.active .case-item:nth-child(3){ opacity:1; transform:none; transition-delay:0.9s; }
+.slide.active .case-item:nth-child(4){ opacity:1; transform:none; transition-delay:1.2s; }
+.c-name { font-family:'Bebas Neue',sans-serif; font-size:clamp(16px,2.2vw,22px); letter-spacing:0.04em; color:var(--cream); margin-bottom:3px; }
+.c-desc { font-size:clamp(12px,1.3vw,14px); color:rgba(230,221,208,0.45); line-height:1.5; font-style:italic; }
+
+/* ─── NAMES LIST ─── */
+.name-list { display:flex; flex-direction:column; gap:0; }
+.name-item {
+  font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(24px,3.5vw,46px); letter-spacing:0.02em;
+  border-bottom:1px solid var(--border); padding:0.6rem 0;
+  opacity:0; transform:translateY(12px); transition:all 0.6s;
+}
+.name-item span { font-family:'JetBrains Mono',monospace; font-size:clamp(8px,0.8vw,10px); color:var(--gray); display:block; letter-spacing:0.1em; margin-top:2px; }
+.slide.active .name-item:nth-child(1){ opacity:1; transform:none; transition-delay:0.25s; }
+.slide.active .name-item:nth-child(2){ opacity:1; transform:none; transition-delay:0.75s; }
+.slide.active .name-item:nth-child(3){ opacity:1; transform:none; transition-delay:1.25s; }
+.slide.active .name-item:nth-child(4){ opacity:1; transform:none; transition-delay:1.75s; }
+
+/* ─── LIVE COUNTER ─── */
+.live-badge {
+  font-family:'JetBrains Mono',monospace; font-size:10px;
+  color:var(--red-bright); letter-spacing:0.3em; margin-bottom:0.8rem;
+  animation: blink 1.8s infinite;
+}
+.live-num {
+  font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(80px,17vw,200px); color:var(--red-bright); line-height:1;
+}
+
+/* ─── URGENCY BAR ─── */
+.urg-bar {
+  display:flex; width:100%;
+  border:1px solid var(--red-dim); margin-top:1.5rem;
+}
+.urg-cell {
+  flex:1; padding:1.2rem 0.8rem; text-align:center;
+  border-right:1px solid var(--red-dim);
+  background:rgba(191,38,38,0.05);
+}
+.urg-cell:last-child { border-right:none; }
+.urg-num { font-family:'Bebas Neue',sans-serif; font-size:clamp(28px,3.8vw,50px); color:var(--red-bright); }
+.urg-label { font-size:clamp(10px,1.1vw,13px); color:rgba(230,221,208,0.5); margin-top:3px; line-height:1.3; }
+
+/* ─── QUOTE ─── */
+.quote-text {
+  font-size:clamp(20px,3.2vw,40px); font-style:italic; font-weight:300;
+  line-height:1.55; color:var(--cream); max-width:860px;
+}
+.quote-text strong { color:var(--red-bright); font-style:normal; font-weight:600; }
+
+/* ─── PHONES ─── */
+.phones { display:flex; gap:1.2rem; flex-wrap:wrap; margin-top:1.8rem; }
+.phone-card {
+  background:rgba(13,13,13,0.9); border:1px solid var(--red-dim);
+  padding:1.3rem 1.8rem; min-width:130px;
+  opacity:0; transform:translateY(18px); transition:all 0.5s;
+}
+.slide.active .phone-card:nth-child(1){ opacity:1; transform:none; transition-delay:0.2s; }
+.slide.active .phone-card:nth-child(2){ opacity:1; transform:none; transition-delay:0.5s; }
+.slide.active .phone-card:nth-child(3){ opacity:1; transform:none; transition-delay:0.8s; }
+.slide.active .phone-card:nth-child(4){ opacity:1; transform:none; transition-delay:1.1s; }
+.ph-num { font-family:'Bebas Neue',sans-serif; font-size:50px; color:var(--red-bright); line-height:1; }
+.ph-label { font-family:'JetBrains Mono',monospace; font-size:9px; color:var(--gray); margin-top:5px; letter-spacing:0.08em; line-height:1.6; }
+
+/* ─── FADE-IN ─── */
+.fi { opacity:0; transform:translateY(22px); transition:opacity 0.7s ease,transform 0.7s ease; }
+.slide.active .fi { opacity:1; transform:none; }
+.slide.active .fi:nth-child(1){ transition-delay:0.1s; }
+.slide.active .fi:nth-child(2){ transition-delay:0.28s; }
+.slide.active .fi:nth-child(3){ transition-delay:0.46s; }
+.slide.active .fi:nth-child(4){ transition-delay:0.64s; }
+.slide.active .fi:nth-child(5){ transition-delay:0.82s; }
+
+/* ─── TICKER ─── */
+.ticker-wrap {
+  position:absolute; bottom:2rem; left:0; right:0;
+  overflow:hidden; white-space:nowrap;
+  border-top:1px solid var(--border); padding-top:9px; z-index:5;
+}
+.ticker-inner {
+  display:inline-block; animation:ticker 38s linear infinite;
+  font-family:'JetBrains Mono',monospace; font-size:9px;
+  color:rgba(191,38,38,0.5); letter-spacing:0.18em;
+}
+.tsep { margin:0 2rem; }
+
+/* ─── PETALS ─── */
+.petals-wrap { position:absolute; inset:0; overflow:hidden; z-index:3; pointer-events:none; }
+.petal {
+  position:absolute; top:-40px;
+  background:var(--red);
+  animation:petalFall linear infinite;
+  clip-path: ellipse(50% 50%);
+}
+@keyframes petalFall {
+  0%   { transform:translateY(0) rotate(0deg) translateX(0); opacity:0.85; }
+  80%  { opacity:0.6; }
+  100% { transform:translateY(110vh) rotate(700deg) translateX(30px); opacity:0; }
+}
+
+/* ─── HANDS SVG ─── */
+.hands-svg {
+  position:absolute; inset:0; z-index:3; pointer-events:none;
+  width:100%; height:100%;
+}
+#leftHand  { animation:breatheL 5s ease-in-out infinite; }
+#rightHand { animation:breatheR 5s ease-in-out infinite; }
+@keyframes breatheL {
+  0%,100% { transform:translateX(0); }
+  50%     { transform:translateX(14px); }
+}
+@keyframes breatheR {
+  0%,100% { transform:translateX(0); }
+  50%     { transform:translateX(-14px); }
+}
+.glow-pulse { animation:glowPulse 5s ease-in-out infinite; }
+@keyframes glowPulse {
+  0%,100% { opacity:0.5; }
+  50%     { opacity:0.95; }
+}
+
+/* ─── BOTTOM CHROME ─── */
+#progressBar { position:fixed; bottom:0; left:0; right:0; height:3px; background:rgba(255,255,255,0.05); z-index:800; }
+#progressFill { height:100%; background:var(--red); width:0; transition:width 0.5s linear; }
+#dots { position:fixed; bottom:8px; left:50%; transform:translateX(-50%); display:flex; gap:7px; z-index:800; }
+.dot { width:5px; height:5px; border-radius:50%; background:rgba(255,255,255,0.12); cursor:pointer; transition:all 0.3s; }
+.dot.active { background:var(--red); transform:scale(1.4); }
+#counter { position:fixed; bottom:6px; right:2rem; font-family:'JetBrains Mono',monospace; font-size:9px; color:var(--gray); z-index:800; }
+
+/* ─── NAV ARROWS ─── */
+#navL,#navR {
+  position:fixed; top:50%; z-index:800;
+  background:transparent; border:none;
+  color:rgba(255,255,255,0.12); font-size:22px;
+  cursor:pointer; padding:1rem; transform:translateY(-50%);
+  transition:color 0.2s;
+}
+#navL { left:0.3rem; } #navR { right:0.3rem; }
+#navL:hover,#navR:hover { color:rgba(255,255,255,0.45); }
+
+/* ─── KEYFRAMES ─── */
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+@keyframes ticker { from{transform:translateX(0)} to{transform:translateX(-50%)} }
+</style>
+</head>
+<body>
+
+<!-- AUDIO BAR -->
+<div id="audioBar">
+  <div class="ab-logo">VOZES CONTRA O SILÊNCIO · CAFÉ FILOSÓFICO IFPE · 16.05.2026</div>
+  <div class="ab-right">
+    <span id="audioStatus">↑ carregue a narração</span>
+    <label id="audioUploadLabel" for="audioInput">[ CARREGAR ÁUDIO ]</label>
+    <input type="file" id="audioInput" accept="audio/*">
+    <button id="playBtn" onclick="toggleAudio()">▶ PLAY</button>
+    <button id="autoBtn" onclick="toggleAuto()">⏸ AUTO</button>
+  </div>
+</div>
+<div id="timerLine"><div id="timerFill"></div></div>
+
+<!-- SLIDES -->
+<div id="slides">
+
+  <!-- ① ABERTURA · 15s · video vela -->
+  <div class="slide active" data-duration="15">
+    <video class="slide-video" src="video_vela.mp4" autoplay muted loop playsinline></video>
+    <div class="video-overlay" style="background:rgba(0,0,0,0.55)"></div>
+    <div class="eyebrow fi">Brasil · 2025 · Fórum Brasileiro de Segurança Pública</div>
+    <div class="giant fi"><span class="r">1.5</span>68</div>
+    <p class="body-text fi">mulheres assassinadas apenas por serem mulheres.<br>Em um único ano. No Brasil.</p>
+    <p class="mono-note fi">MAIOR NÚMERO DA ÚLTIMA DÉCADA · FONTE: FBSP 2026</p>
+    <div class="ticker-wrap">
+      <div class="ticker-inner">4 MULHERES MORTAS POR DIA <span class="tsep">◆</span> UMA A CADA 6 HORAS <span class="tsep">◆</span> 88 FEMINICÍDIOS EM PERNAMBUCO EM 2025 <span class="tsep">◆</span> 270 FEMINICÍDIOS EM SÃO PAULO EM 2025 <span class="tsep">◆</span> +96% EM SP EM 4 ANOS <span class="tsep">◆</span> 148 VÍTIMAS TINHAM MEDIDA PROTETIVA QUANDO FORAM MORTAS <span class="tsep">◆</span> 4 MULHERES MORTAS POR DIA <span class="tsep">◆</span> UMA A CADA 6 HORAS <span class="tsep">◆</span> 88 FEMINICÍDIOS EM PERNAMBUCO EM 2025 <span class="tsep">◆</span> 270 FEMINICÍDIOS EM SÃO PAULO EM 2025 <span class="tsep">◆</span> +96% EM SP EM 4 ANOS <span class="tsep">◆</span> 148 VÍTIMAS TINHAM MEDIDA PROTETIVA QUANDO FORAM MORTAS <span class="tsep">◆</span></div>
+    </div>
+  </div>
+
+  <!-- ② BRASIL DADOS · 20s · video lágrima -->
+  <div class="slide" data-duration="20">
+    <video class="slide-video" src="video_lagrima.mp4" muted loop playsinline></video>
+    <div class="video-overlay" style="background:rgba(0,0,0,0.60)"></div>
+    <div class="eyebrow fi">panorama nacional</div>
+    <div class="headline fi">O retrato<br>do Brasil</div>
+    <div class="stat-grid fi">
+      <div class="stat-cell">
+        <span class="stat-num" data-target="1568">0</span>
+        <p class="stat-label">mulheres assassinadas em 2025</p>
+        <p class="stat-src">FBSP 2026</p>
+      </div>
+      <div class="stat-cell">
+        <span class="stat-num">4<small style="font-size:0.42em">/dia</small></span>
+        <p class="stat-label">mortes por feminicídio a cada dia</p>
+        <p class="stat-src">FBSP 2026</p>
+      </div>
+      <div class="stat-cell">
+        <span class="stat-num" data-target="148">0</span>
+        <p class="stat-label">tinham medida protetiva quando foram mortas</p>
+        <p class="stat-src">FBSP · 16 estados</p>
+      </div>
+      <div class="stat-cell">
+        <span class="stat-num">+14<small style="font-size:0.42em">%</small></span>
+        <p class="stat-label">de crescimento nos últimos 4 anos</p>
+        <p class="stat-src">FBSP 2021–2025</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ③ CONTADOR AO VIVO · 10s · dark -->
+  <div class="slide center" data-duration="10">
+    <div class="live-badge fi">● AO VIVO — ESTIMATIVA 2026</div>
+    <div class="live-num fi" id="liveNum">0</div>
+    <p class="body-text fi" style="max-width:500px">feminicídios estimados no Brasil<br>desde 1º de janeiro de 2026</p>
+    <p class="mono-note fi">média diária de 4,3 casos · FBSP 2025</p>
+  </div>
+
+  <!-- ④ PERNAMBUCO DADOS · 20s · dark -->
+  <div class="slide" data-duration="20">
+    <div class="two-col">
+      <div>
+        <div class="eyebrow fi">Estado de Pernambuco</div>
+        <div class="headline fi" style="font-size:clamp(56px,9.5vw,124px);line-height:0.87">PER<br>NAM<br>BUCO</div>
+        <div class="red-rule fi"></div>
+        <p class="body-text fi" style="font-size:clamp(13px,1.6vw,18px)">
+          O estado que alcançou a menor taxa de homicídios em 22 anos —
+          e viu os feminicídios crescerem 14% em 2025.
+        </p>
+        <div class="urg-bar fi">
+          <div class="urg-cell"><div class="urg-num">88</div><div class="urg-label">feminicídios<br>2025</div></div>
+          <div class="urg-cell"><div class="urg-num">+14%</div><div class="urg-label">vs<br>2024</div></div>
+          <div class="urg-cell"><div class="urg-num">137</div><div class="urg-label">viol. doméstica<br>por dia 2026</div></div>
+        </div>
+      </div>
+      <div>
+        <div class="bar-section fi">
+          <div class="bar-label-top">EVOLUÇÃO · PERNAMBUCO</div>
+          <div class="bar-row"><span class="bar-year">2021</span><div class="bar-track"><div class="bar-fill pe" data-pct="99"></div></div><span class="bar-val">87</span></div>
+          <div class="bar-row"><span class="bar-year">2022</span><div class="bar-track"><div class="bar-fill pe" data-pct="82"></div></div><span class="bar-val">72</span></div>
+          <div class="bar-row"><span class="bar-year">2023</span><div class="bar-track"><div class="bar-fill pe" data-pct="95"></div></div><span class="bar-val">83</span></div>
+          <div class="bar-row"><span class="bar-year">2024</span><div class="bar-track"><div class="bar-fill pe" data-pct="88"></div></div><span class="bar-val">77</span></div>
+          <div class="bar-row"><span class="bar-year">2025</span><div class="bar-track"><div class="bar-fill pe" data-pct="100"></div></div><span class="bar-val" style="color:var(--red-bright)">88</span></div>
+        </div>
+        <p class="fi" style="margin-top:1.5rem;font-size:clamp(12px,1.3vw,15px);color:var(--gray);font-style:italic;line-height:1.7;border-left:2px solid var(--red-dim);padding-left:1rem">
+          "Em Pernambuco, o feminicídio não é um fenômeno metropolitano,
+          tendo taxas proporcionalmente altas no Agreste e no Sertão."
+          <br><span style="font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--red-dim);margin-top:4px;display:block">— Lara Pirro, especialista em segurança pública</span>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ⑤ PERNAMBUCO CASOS · 20s · video cadeira -->
+  <div class="slide" data-duration="20">
+    <video class="slide-video" src="video_cadeira.mp4" muted loop playsinline></video>
+    <div class="video-overlay" style="background:rgba(0,0,0,0.58)"></div>
+    <div class="eyebrow fi">Pernambuco · casos recentes</div>
+    <div class="headline fi" style="font-size:clamp(30px,4.8vw,62px)">
+      Um feminicídio a cada<br><span style="color:var(--red-bright)">quatro dias.</span>
+    </div>
+    <div class="case-list">
+      <div class="case-item">
+        <div class="c-name">Isabel Cristina · 22 anos · Recife</div>
+        <div class="c-desc">Estudante de medicina. Tinha uma vida inteira pela frente.</div>
+      </div>
+      <div class="case-item">
+        <div class="c-name">Jaboatão dos Guararapes</div>
+        <div class="c-desc">Mulher de 57 anos morta dentro de casa. Outra, de 21, esfaqueada e com o corpo queimado pelo ex-colega de trabalho.</div>
+      </div>
+      <div class="case-item">
+        <div class="c-name">Espinheiro · Recife · março 2026</div>
+        <div class="c-desc">Homem derrubou portão de condomínio com o carro para atirar na ex-companheira. Ligou para ela e ameaçou incendiar o apartamento.</div>
+      </div>
+      <div class="case-item">
+        <div class="c-name">Santo Aleixo · Jaboatão · 2026</div>
+        <div class="c-desc">Mulher de 40 anos agredida com machado pelo ex-companheiro. Vizinhos intervieram e a abrigaram.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ⑥ LEI MARIA DA PENHA · 18s · dark -->
+  <div class="slide" data-duration="18">
+    <div class="eyebrow fi">Lei Maria da Penha · 2006 — 2026</div>
+    <div class="headline fi" style="font-size:clamp(48px,8vw,106px)">20 anos.<br><span style="color:var(--red-bright)">Os números</span><br>crescem.</div>
+    <div class="red-rule fi"></div>
+    <p class="body-text fi">
+      Uma das legislações mais avançadas do mundo no combate à violência doméstica.
+      Duas décadas depois — os feminicídios batem recordes.
+      Não porque a lei é fraca. Mas porque uma lei não muda cultura.
+    </p>
+    <p class="mono-note fi" style="max-width:640px;line-height:1.9">
+      Em Pernambuco, o estado lidera também os casos de transfeminicídio no país —
+      mortes que não aparecem nos painéis oficiais.
+      Invisíveis nas estatísticas. Como se algumas mortes importassem menos.
+    </p>
+  </div>
+
+  <!-- ⑦ PERFIL DAS VÍTIMAS · 20s · dark -->
+  <div class="slide" data-duration="20">
+    <div class="two-col">
+      <div>
+        <div class="eyebrow fi">quem são elas</div>
+        <div class="headline fi" style="font-size:clamp(40px,6.5vw,84px)">Não eram<br>estatísticas.</div>
+        <div class="red-rule fi"></div>
+        <p class="body-text fi" style="font-size:clamp(14px,1.6vw,19px)">
+          A maioria é negra.<br>
+          A maioria mora na periferia.<br>
+          A maioria conhecia o agressor.<br>
+          Era o companheiro. Era o ex. Era o namorado.
+        </p>
+        <p class="mono-note fi" style="margin-top:1.5rem;line-height:2">
+          Das 88 vítimas em PE em 2025<br>
+          apenas <span style="color:var(--red-bright);font-size:1.5em;font-family:'Bebas Neue',sans-serif">4</span> tinham medida protetiva<br>
+          O sistema falhou com as outras <span style="color:var(--red-bright);font-size:1.5em;font-family:'Bebas Neue',sans-serif">84</span>
+        </p>
+      </div>
+      <div>
+        <div class="name-list">
+          <div class="name-item">Isabel Cristina<span>22 anos · estudante de medicina · Recife · PE</span></div>
+          <div class="name-item">Andressa<span>morta a facadas pelo companheiro · Goiana · PE</span></div>
+          <div class="name-item">28 anos<span>encontrada com a filha de 7 meses no colo · Nova Descoberta · PE</span></div>
+          <div class="name-item">57 anos<span>morta dentro de casa · Jaboatão dos Guararapes · PE</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ⑧ SÃO PAULO · 22s · dark -->
+  <div class="slide" data-duration="22">
+    <div class="two-col">
+      <div>
+        <div class="eyebrow fi">Estado de São Paulo</div>
+        <div class="headline fi" style="font-size:clamp(56px,9vw,118px);line-height:0.87">SÃO<br>PAULO</div>
+        <div class="red-rule fi"></div>
+        <p class="body-text fi" style="font-size:clamp(13px,1.55vw,18px)">
+          O estado mais rico do Brasil concentra sozinho
+          <strong style="color:var(--red-bright)">17,2%</strong> de todos os feminicídios do país.
+          Riqueza não protege mulheres.
+        </p>
+        <div class="urg-bar fi">
+          <div class="urg-cell"><div class="urg-num">270</div><div class="urg-label">feminicídios<br>2025</div></div>
+          <div class="urg-cell"><div class="urg-num">+96%</div><div class="urg-label">em 4 anos<br>2021–2025</div></div>
+          <div class="urg-cell"><div class="urg-num">53</div><div class="urg-label">só na capital<br>jan–out 2025</div></div>
+        </div>
+      </div>
+      <div>
+        <div class="bar-section fi">
+          <div class="bar-label-top">EVOLUÇÃO · SÃO PAULO</div>
+          <div class="bar-row"><span class="bar-year">2021</span><div class="bar-track"><div class="bar-fill sp" data-pct="50"></div></div><span class="bar-val">136</span></div>
+          <div class="bar-row"><span class="bar-year">2022</span><div class="bar-track"><div class="bar-fill sp" data-pct="57"></div></div><span class="bar-val">153</span></div>
+          <div class="bar-row"><span class="bar-year">2023</span><div class="bar-track"><div class="bar-fill sp" data-pct="68"></div></div><span class="bar-val">183</span></div>
+          <div class="bar-row"><span class="bar-year">2024</span><div class="bar-track"><div class="bar-fill sp" data-pct="96"></div></div><span class="bar-val">258</span></div>
+          <div class="bar-row"><span class="bar-year">2025</span><div class="bar-track"><div class="bar-fill sp" data-pct="100"></div></div><span class="bar-val" style="color:var(--red-bright)">270</span></div>
+        </div>
+        <p class="fi" style="margin-top:1.4rem;font-size:clamp(11px,1.2vw,14px);color:var(--gray);font-style:italic;line-height:1.7;border-left:2px solid var(--red-dim);padding-left:1rem">
+          "Praticamente duplicou em 4 anos o número de feminicídios no estado."
+          <br><span style="font-family:'JetBrains Mono',monospace;font-size:8px;color:var(--red-dim);display:block;margin-top:4px">— Samira Bueno, diretora executiva do FBSP</span>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ⑨ QUOTE + PÉTALAS · 10s -->
+  <div class="slide center" data-duration="10">
+    <div class="petals-wrap" id="petalsWrap"></div>
+    <div class="quote-text fi">
+      "O feminicídio não começa com um disparo.<br>
+      Começa com um controle.<br>
+      Com um ciúme disfarçado de amor.<br>
+      Com um <strong>tapa que não vai acontecer de novo.</strong>"
+    </div>
+    <div class="red-rule c fi"></div>
+    <p class="mono-note fi">começa muito antes · e quando chega ao fim — já era tarde demais</p>
+  </div>
+
+  <!-- ⑩ CHAMADA AÇÃO + MÃOS · 18s -->
+  <div class="slide" data-duration="18">
+    <!-- HANDS SVG -->
+    <svg class="hands-svg" viewBox="0 0 1200 600" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+          <stop offset="0%"   stop-color="#bf2626" stop-opacity="0.22"/>
+          <stop offset="60%"  stop-color="#bf2626" stop-opacity="0.06"/>
+          <stop offset="100%" stop-color="#bf2626" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="tipGlow" cx="50%" cy="50%" r="50%">
+          <stop offset="0%"   stop-color="#e53030" stop-opacity="0.7"/>
+          <stop offset="100%" stop-color="#e53030" stop-opacity="0"/>
+        </radialGradient>
+        <filter id="soft"><feGaussianBlur stdDeviation="2.5"/></filter>
+      </defs>
+      <!-- AMBIENT GLOW CENTER -->
+      <ellipse cx="600" cy="295" rx="260" ry="140" fill="url(#glow)" class="glow-pulse"/>
+      <!-- LEFT HAND FINGERS -->
+      <g id="leftHand">
+        <path d="M 0,218 L 488,210 Q 498,210 498,218 Q 498,226 488,226 L 0,234 Z" fill="rgba(226,217,204,0.86)" filter="url(#soft)"/>
+        <path d="M 0,248 L 500,238 Q 510,238 510,246 Q 510,254 500,254 L 0,264 Z" fill="rgba(226,217,204,0.90)" filter="url(#soft)"/>
+        <path d="M 0,278 L 490,271 Q 500,271 500,279 Q 500,287 490,287 L 0,294 Z" fill="rgba(226,217,204,0.87)" filter="url(#soft)"/>
+        <path d="M 0,306 L 462,302 Q 470,302 470,309 Q 470,316 462,316 L 0,320 Z" fill="rgba(226,217,204,0.78)" filter="url(#soft)"/>
+      </g>
+      <!-- RIGHT HAND FINGERS (mirror) -->
+      <g id="rightHand" transform="translate(1200,0) scale(-1,1)">
+        <path d="M 0,218 L 488,210 Q 498,210 498,218 Q 498,226 488,226 L 0,234 Z" fill="rgba(226,217,204,0.86)" filter="url(#soft)"/>
+        <path d="M 0,248 L 500,238 Q 510,238 510,246 Q 510,254 500,254 L 0,264 Z" fill="rgba(226,217,204,0.90)" filter="url(#soft)"/>
+        <path d="M 0,278 L 490,271 Q 500,271 500,279 Q 500,287 490,287 L 0,294 Z" fill="rgba(226,217,204,0.87)" filter="url(#soft)"/>
+        <path d="M 0,306 L 462,302 Q 470,302 470,309 Q 470,316 462,316 L 0,320 Z" fill="rgba(226,217,204,0.78)" filter="url(#soft)"/>
+      </g>
+      <!-- TIP GLOW between fingers -->
+      <ellipse cx="600" cy="248" rx="55" ry="30" fill="url(#tipGlow)" class="glow-pulse"/>
+    </svg>
+    <div class="eyebrow fi">se você ou alguém que você conhece precisa de ajuda</div>
+    <div class="headline fi" style="font-size:clamp(38px,6.5vw,86px)">Você não<br>está <span style="color:var(--red-bright)">sozinha.</span></div>
+    <div class="phones">
+      <div class="phone-card"><div class="ph-num">180</div><div class="ph-label">CENTRAL DA MULHER<br>GRATUITO · 24H</div></div>
+      <div class="phone-card"><div class="ph-num">190</div><div class="ph-label">EMERGÊNCIA<br>POLÍCIA MILITAR</div></div>
+      <div class="phone-card"><div class="ph-num">181</div><div class="ph-label">DISQUE DENÚNCIA<br>SIGILOSO · GRATUITO</div></div>
+      <div class="phone-card" style="border-color:var(--red)"><div class="ph-num" style="font-size:30px;padding-top:8px">APP 197<br>MULHER</div><div class="ph-label">PERNAMBUCO<br>SIGILOSO · 24H</div></div>
+    </div>
+  </div>
+
+  <!-- ⑪ ENCERRAMENTO · 15s · video vela -->
+  <div class="slide center" data-duration="15">
+    <video class="slide-video" src="video_vela.mp4" muted loop playsinline></video>
+    <div class="video-overlay" style="background:rgba(0,0,0,0.68)"></div>
+    <p class="fi" style="font-family:'JetBrains Mono',monospace;font-size:clamp(9px,1vw,11px);letter-spacing:0.28em;color:var(--red);margin-bottom:1.8rem">4º ENCONTRO DO CAFÉ FILOSÓFICO · IFPE · 16 DE MAIO DE 2026</p>
+    <div class="headline fi" style="font-size:clamp(34px,5.5vw,76px);line-height:1.05;max-width:750px">
+      Vozes contra o silêncio.<br>
+      <span style="color:var(--red-bright)">Reflexões sobre o feminicídio.</span>
+    </div>
+    <div class="red-rule c fi"></div>
+    <p class="body-text fi" style="font-size:clamp(15px,1.8vw,22px);max-width:680px">
+      "Enquanto você assistiu a essa apresentação,<br>
+      uma mulher sofreu violência doméstica no Brasil."
+    </p>
+    <p class="mono-note fi" style="margin-top:2rem;letter-spacing:0.22em">
+      porque falar é o primeiro passo para mudar · porque o silêncio custa vidas
+    </p>
+  </div>
+
+</div>
+
+<!-- BOTTOM CHROME -->
+<div id="progressBar"><div id="progressFill"></div></div>
+<div id="dots"></div>
+<div id="counter">1 / 11</div>
+<button id="navL" onclick="prevSlide()">‹</button>
+<button id="navR" onclick="nextSlide()">›</button>
+
+<audio id="bgAudio"></audio>
+
+<script>
+const slides    = document.querySelectorAll('.slide');
+const total     = slides.length;
+let current     = 0;
+let autoRunning = true;
+let autoTimer   = null;
+let isPlaying   = false;
+
+// ── DOTS ──
+const dotsEl = document.getElementById('dots');
+slides.forEach((_, i) => {
+  const d = document.createElement('div');
+  d.className = 'dot' + (i === 0 ? ' active' : '');
+  d.onclick = () => goTo(i);
+  dotsEl.appendChild(d);
+});
+
+// ── NAVIGATE ──
+function goTo(idx) {
+  if (idx < 0 || idx >= total) return;
+
+  // pause outgoing video
+  const outVid = slides[current].querySelector('.slide-video');
+  if (outVid) outVid.pause();
+
+  slides[current].classList.remove('active');
+  current = idx;
+  slides[current].classList.add('active');
+
+  // play incoming video
+  const inVid = slides[current].querySelector('.slide-video');
+  if (inVid) inVid.play().catch(() => {});
+
+  // update chrome
+  document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i === current));
+  document.getElementById('counter').textContent = (current + 1) + ' / ' + total;
+  document.getElementById('progressFill').style.width = ((current + 1) / total * 100) + '%';
+
+  triggerAnimations(current);
+  if (autoRunning) scheduleNext();
+}
+
+function nextSlide() { goTo((current + 1) % total); }
+function prevSlide() { goTo((current - 1 + total) % total); }
+
+// ── AUTO ADVANCE ──
+function scheduleNext() {
+  clearTimeout(autoTimer);
+  const dur = parseInt(slides[current].dataset.duration) * 1000;
+  const fill = document.getElementById('timerFill');
+  fill.style.transition = 'none'; fill.style.width = '0';
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    fill.style.transition = `width ${dur}ms linear`;
+    fill.style.width = '100%';
+  }));
+  if (current < total - 1) {
+    autoTimer = setTimeout(() => goTo(current + 1), dur);
+  }
+}
+
+function toggleAuto() {
+  autoRunning = !autoRunning;
+  const btn = document.getElementById('autoBtn');
+  if (autoRunning) {
+    btn.textContent = '⏸ AUTO'; btn.style.color = '';
+    scheduleNext();
+  } else {
+    btn.textContent = '▶ AUTO'; btn.style.color = 'var(--red)';
+    clearTimeout(autoTimer);
+    document.getElementById('timerFill').style.width = '0';
+  }
+}
+
+// ── SLIDE ANIMATIONS ──
+function triggerAnimations(idx) {
+  const s = slides[idx];
+  // bars
+  s.querySelectorAll('.bar-fill').forEach(b => {
+    b.style.width = '0';
+    setTimeout(() => { b.style.width = b.dataset.pct + '%'; }, 350);
+  });
+  // counters
+  s.querySelectorAll('[data-target]').forEach(el => {
+    el.textContent = '0'; animateCount(el);
+  });
+  // live counter
+  if (s.querySelector('#liveNum')) updateLive();
+}
+
+function animateCount(el) {
+  const target = parseInt(el.dataset.target);
+  const t0 = Date.now();
+  (function tick() {
+    const p = Math.min((Date.now() - t0) / 1800, 1);
+    const e = 1 - Math.pow(1 - p, 3);
+    el.textContent = Math.round(e * target).toLocaleString('pt-BR');
+    if (p < 1) requestAnimationFrame(tick);
+  })();
+}
+
+function updateLive() {
+  const el = document.getElementById('liveNum');
+  if (!el) return;
+  const days = (Date.now() - new Date('2026-01-01').getTime()) / 86400000;
+  el.dataset.target = Math.floor(days * 4.3);
+  animateCount(el);
+}
+
+// ── PETALS ──
+function initPetals() {
+  const wrap = document.getElementById('petalsWrap');
+  if (!wrap) return;
+  for (let i = 0; i < 28; i++) {
+    const p = document.createElement('div');
+    p.className = 'petal';
+    const w = 7 + Math.random() * 11;
+    p.style.cssText = `
+      left:${Math.random() * 102}vw;
+      width:${w}px; height:${w * 1.55}px;
+      opacity:${0.45 + Math.random() * 0.55};
+      animation-duration:${3.5 + Math.random() * 5}s;
+      animation-delay:${-Math.random() * 9}s;
+      border-radius:${40 + Math.random()*20}% ${20+Math.random()*20}% ${40+Math.random()*20}% ${20+Math.random()*20}%;
+      transform:rotate(${Math.random()*360}deg);
+    `;
+    wrap.appendChild(p);
+  }
+}
+
+// ── AUDIO ──
+const audio = document.getElementById('bgAudio');
+document.getElementById('audioInput').addEventListener('change', function(e) {
+  const f = e.target.files[0]; if (!f) return;
+  audio.src = URL.createObjectURL(f);
+  audio.loop = false;
+  const btn = document.getElementById('playBtn');
+  btn.style.display = 'block';
+  const st = document.getElementById('audioStatus');
+  st.textContent = '✓ ' + (f.name.length > 28 ? f.name.slice(0,28)+'…' : f.name);
+  st.style.color = 'var(--red)';
+});
+
+// auto-load audio if present in same folder
+(function tryAutoLoad() {
+  const a = new Audio('audio_narracao.mp3');
+  a.oncanplaythrough = () => {
+    document.getElementById('bgAudio').src = 'audio_narracao.mp3';
+    const btn = document.getElementById('playBtn');
+    btn.style.display = 'block';
+    document.getElementById('audioStatus').textContent = '✓ audio_narracao.mp3';
+    document.getElementById('audioStatus').style.color = 'var(--red)';
+  };
+})();
+
+function toggleAudio() {
+  if (isPlaying) {
+    audio.pause();
+    document.getElementById('playBtn').textContent = '▶ PLAY';
+    isPlaying = false;
+  } else {
+    audio.play().catch(() => {});
+    document.getElementById('playBtn').textContent = '⏸ PAUSE';
+    isPlaying = true;
+  }
+}
+
+// ── KEYBOARD ──
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); nextSlide(); }
+  if (e.key === 'ArrowLeft')  { e.preventDefault(); prevSlide(); }
+  if (e.key === 'Escape')     toggleAuto();
+  if (e.key === 'p' || e.key === 'P') toggleAudio();
+});
+
+// ── INIT ──
+window.addEventListener('load', () => {
+  initPetals();
+  triggerAnimations(0);
+  const v0 = slides[0].querySelector('.slide-video');
+  if (v0) v0.play().catch(() => {});
+  scheduleNext();
+});
+</script>
+</body>
+</html>
