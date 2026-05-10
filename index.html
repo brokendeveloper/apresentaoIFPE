@@ -793,21 +793,42 @@ document.getElementById('audioInput').addEventListener('change', function(e) {
 
 // auto-load audio if present in same folder
 (function tryAutoLoad() {
-  const a = new Audio('audio_narracao.mp3');
-  a.oncanplaythrough = () => {
-    const bgAudio = document.getElementById('bgAudio');
-    bgAudio.src = 'audio_narracao.mp3';
-    const btn = document.getElementById('playBtn');
+  audio.src = 'audio_narracao.mp3';
+  audio.preload = 'auto';
+
+  const btn    = document.getElementById('playBtn');
+  const status = document.getElementById('audioStatus');
+
+  audio.addEventListener('canplaythrough', () => {
     btn.style.display = 'block';
-    document.getElementById('audioStatus').textContent = '✓ audio_narracao.mp3';
-    document.getElementById('audioStatus').style.color = 'var(--red)';
-    setTimeout(() => {
-      bgAudio.play().then(() => {
-        btn.textContent = '⏸ PAUSE';
-        isPlaying = true;
-      }).catch(() => {});
-    }, 5000);
-  };
+    status.textContent = '✓ audio_narracao.mp3';
+    status.style.color = 'var(--red)';
+  }, { once: true });
+
+  function startAudio() {
+    if (isPlaying) return;
+    audio.play().then(() => {
+      btn.textContent = '⏸ PAUSE';
+      isPlaying = true;
+    }).catch(() => {
+      // autoplay bloqueado — aguarda primeira interação
+      const unlock = () => {
+        if (isPlaying) return;
+        audio.play().then(() => {
+          btn.textContent = '⏸ PAUSE';
+          isPlaying = true;
+        }).catch(() => {});
+        document.removeEventListener('click',   unlock);
+        document.removeEventListener('keydown', unlock);
+        document.removeEventListener('touchstart', unlock);
+      };
+      document.addEventListener('click',      unlock);
+      document.addEventListener('keydown',    unlock);
+      document.addEventListener('touchstart', unlock);
+    });
+  }
+
+  setTimeout(startAudio, 5000);
 })();
 
 function toggleAudio() {
