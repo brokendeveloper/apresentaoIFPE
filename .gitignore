@@ -1,0 +1,20 @@
+# Sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editores
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Temporários
+*.tmp
+*.log
+
+# Claude
+.claude/
+
+# Áudio original (substituído pelos arquivos por slide)
+audio_narracao.mp3

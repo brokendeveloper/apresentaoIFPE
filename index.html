@@ -4,411 +4,24 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vozes Contra o Silêncio</title>
-<!--
-  ═══════════════════════════════════════════════════
-  ESTRUTURA DE ARQUIVOS — coloque tudo na mesma pasta
-  ═══════════════════════════════════════════════════
-  📁 feminicidio/
-     ├── index.html          ← este arquivo
-     ├── video_vela.mp4      ← clipe da vela (Veo)
-     ├── video_lagrima.mp4   ← clipe da lágrima (Veo)
-     ├── video_cadeira.mp4   ← clipe da cadeira (Veo)
-     └── audio_narracao.mp3  ← narração ElevenLabs (opcional — pode carregar pelo botão)
-  ═══════════════════════════════════════════════════
--->
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300;1,400&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
-<style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-:root {
-  --black: #060606;
-  --deep: #0d0d0d;
-  --red: #bf2626;
-  --red-bright: #e53030;
-  --red-dim: #791818;
-  --cream: #e6ddd0;
-  --gray: #5a5a5a;
-  --border: rgba(255,255,255,0.06);
-}
-
-html, body {
-  width: 100%; height: 100%;
-  overflow: hidden;
-  background: var(--black);
-  color: var(--cream);
-  font-family: 'Crimson Pro', Georgia, serif;
-}
-
-/* GRAIN */
-body::after {
-  content: '';
-  position: fixed; inset: 0;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
-  pointer-events: none; z-index: 9000; opacity: 0.45;
-}
-
-/* ─── AUDIO BAR ─── */
-#audioBar {
-  position: fixed; top: 0; left: 0; right: 0; height: 46px;
-  background: rgba(6,6,6,0.97);
-  border-bottom: 1px solid var(--red-dim);
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 0 2rem; z-index: 800;
-}
-.ab-logo {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10px; letter-spacing: 0.22em; color: var(--red);
-}
-.ab-right { display: flex; align-items: center; gap: 10px; }
-#audioStatus { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--gray); }
-#audioUploadLabel {
-  font-family: 'JetBrains Mono', monospace; font-size: 10px;
-  color: var(--gray); border: 1px solid var(--red-dim);
-  padding: 3px 12px; cursor: pointer; transition: all 0.2s; letter-spacing: 0.04em;
-}
-#audioUploadLabel:hover { background: rgba(191,38,38,0.18); color: var(--cream); }
-#audioInput { display: none; }
-#playBtn {
-  font-family: 'JetBrains Mono', monospace; font-size: 10px;
-  background: var(--red); color: #fff; border: none;
-  padding: 3px 14px; cursor: pointer; display: none;
-  letter-spacing: 0.04em; transition: background 0.2s;
-}
-#playBtn:hover { background: var(--red-bright); }
-#autoBtn {
-  font-family: 'JetBrains Mono', monospace; font-size: 9px;
-  background: transparent; color: var(--gray);
-  border: 1px solid rgba(255,255,255,0.1);
-  padding: 3px 10px; cursor: pointer; letter-spacing: 0.04em; transition: all 0.2s;
-}
-#autoBtn:hover { color: var(--cream); border-color: var(--gray); }
-
-/* ─── TIMER LINE ─── */
-#timerLine {
-  position: fixed; top: 46px; left: 0; right: 0; height: 2px; z-index: 799;
-}
-#timerFill { height: 100%; background: rgba(191,38,38,0.45); width: 0; transition: width linear; }
-
-/* ─── SLIDES CONTAINER ─── */
-#slides { position: fixed; inset: 46px 0 14px; overflow: hidden; }
-
-/* ─── SLIDE BASE ─── */
-.slide {
-  position: absolute; inset: 0;
-  display: flex; flex-direction: column;
-  justify-content: center; padding: 3rem 7vw;
-  opacity: 0; pointer-events: none;
-  transition: opacity 0.9s ease;
-}
-.slide.active { opacity: 1; pointer-events: all; }
-.slide.center { align-items: center; text-align: center; }
-
-/* ─── VIDEO BACKGROUND ─── */
-.slide-video {
-  position: absolute; inset: 0;
-  width: 100%; height: 100%;
-  object-fit: cover; z-index: 1;
-}
-.video-overlay {
-  position: absolute; inset: 0; z-index: 2;
-  background: rgba(0,0,0,0.62);
-}
-.slide > *:not(.slide-video):not(.video-overlay):not(.petals-wrap):not(.hands-svg) {
-  position: relative; z-index: 5;
-}
-
-/* ─── TYPOGRAPHY ─── */
-.eyebrow {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: clamp(9px,1vw,11px); color: var(--red);
-  letter-spacing: 0.28em; text-transform: uppercase;
-  margin-bottom: 1.8rem;
-}
-.eyebrow::before { content: '— '; }
-
-.giant {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: clamp(100px,21vw,260px);
-  line-height: 0.84; letter-spacing: -0.02em;
-}
-.giant .r { color: var(--red-bright); }
-
-.headline {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: clamp(44px,8.5vw,108px);
-  line-height: 0.9; letter-spacing: -0.01em;
-}
-
-.body-text {
-  font-size: clamp(15px,1.9vw,22px);
-  font-weight: 300; font-style: italic;
-  color: rgba(230,221,208,0.65);
-  line-height: 1.55; margin-top: 1.4rem; max-width: 680px;
-}
-
-.mono-note {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: clamp(9px,0.9vw,11px); color: var(--gray);
-  letter-spacing: 0.08em; margin-top: 1rem; line-height: 1.8;
-}
-
-.red-rule { width: 44px; height: 2px; background: var(--red); margin: 1.4rem 0; }
-.red-rule.c { margin: 1.4rem auto; }
-
-/* ─── STAT GRID ─── */
-.stat-grid {
-  display: grid; grid-template-columns: repeat(4,1fr);
-  gap: 1px; background: var(--border);
-  border: 1px solid var(--border); width: 100%; margin-top: 1.8rem;
-}
-@media(max-width:900px){ .stat-grid { grid-template-columns: repeat(2,1fr); } }
-.stat-cell {
-  background: rgba(13,13,13,0.9); padding: 1.8rem 1.4rem;
-  border-bottom: 2px solid transparent; transition: border-color 0.4s;
-}
-.slide.active .stat-cell:nth-child(1){ border-color:var(--red); transition-delay:0.2s; }
-.slide.active .stat-cell:nth-child(2){ border-color:var(--red); transition-delay:0.5s; }
-.slide.active .stat-cell:nth-child(3){ border-color:var(--red); transition-delay:0.8s; }
-.slide.active .stat-cell:nth-child(4){ border-color:var(--red); transition-delay:1.1s; }
-.stat-num {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: clamp(40px,5.5vw,68px); color: var(--red-bright); line-height: 1; display: block;
-}
-.stat-label { font-size: clamp(12px,1.3vw,15px); font-weight:300; color:rgba(230,221,208,0.6); margin-top:0.4rem; line-height:1.35; }
-.stat-src { font-family:'JetBrains Mono',monospace; font-size:8px; color:var(--gray); margin-top:0.7rem; }
-
-/* ─── TWO COL ─── */
-.two-col { display:grid; grid-template-columns:1fr 1fr; gap:4vw; width:100%; align-items:start; }
-@media(max-width:800px){ .two-col { grid-template-columns:1fr; } }
-
-/* ─── BAR CHART ─── */
-.bar-section { margin-top: 1.5rem; }
-.bar-label-top { font-family:'JetBrains Mono',monospace; font-size:9px; color:var(--gray); letter-spacing:0.2em; margin-bottom:10px; }
-.bar-row { display:grid; grid-template-columns:52px 1fr 52px; gap:10px; align-items:center; margin-bottom:9px; }
-.bar-year { font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--gray); text-align:right; }
-.bar-track { background:rgba(255,255,255,0.05); height:28px; overflow:hidden; }
-.bar-fill { height:100%; width:0; transition:width 1.3s cubic-bezier(0.4,0,0.2,1); }
-.bar-fill.pe { background:linear-gradient(to right,#5a1010,#e53030); }
-.bar-fill.sp { background:linear-gradient(to right,#3d0a0a,#e53030); }
-.bar-val { font-family:'Bebas Neue',sans-serif; font-size:22px; color:var(--cream); }
-
-/* ─── CASE LIST ─── */
-.case-list { width:100%; margin-top:1.4rem; display:flex; flex-direction:column; gap:9px; }
-.case-item {
-  padding:0.9rem 1.2rem;
-  background:rgba(191,38,38,0.05); border-left:3px solid var(--red-dim);
-  opacity:0; transform:translateX(-18px); transition:all 0.5s;
-}
-.slide.active .case-item:nth-child(1){ opacity:1; transform:none; transition-delay:0.3s; }
-.slide.active .case-item:nth-child(2){ opacity:1; transform:none; transition-delay:0.6s; }
-.slide.active .case-item:nth-child(3){ opacity:1; transform:none; transition-delay:0.9s; }
-.slide.active .case-item:nth-child(4){ opacity:1; transform:none; transition-delay:1.2s; }
-.c-name { font-family:'Bebas Neue',sans-serif; font-size:clamp(16px,2.2vw,22px); letter-spacing:0.04em; color:var(--cream); margin-bottom:3px; }
-.c-desc { font-size:clamp(12px,1.3vw,14px); color:rgba(230,221,208,0.45); line-height:1.5; font-style:italic; }
-
-/* ─── NAMES LIST ─── */
-.name-list { display:flex; flex-direction:column; gap:0; }
-.name-item {
-  font-family:'Bebas Neue',sans-serif;
-  font-size:clamp(24px,3.5vw,46px); letter-spacing:0.02em;
-  border-bottom:1px solid var(--border); padding:0.6rem 0;
-  opacity:0; transform:translateY(12px); transition:all 0.6s;
-}
-.name-item span { font-family:'JetBrains Mono',monospace; font-size:clamp(8px,0.8vw,10px); color:var(--gray); display:block; letter-spacing:0.1em; margin-top:2px; }
-.slide.active .name-item:nth-child(1){ opacity:1; transform:none; transition-delay:0.25s; }
-.slide.active .name-item:nth-child(2){ opacity:1; transform:none; transition-delay:0.75s; }
-.slide.active .name-item:nth-child(3){ opacity:1; transform:none; transition-delay:1.25s; }
-.slide.active .name-item:nth-child(4){ opacity:1; transform:none; transition-delay:1.75s; }
-
-/* ─── LIVE COUNTER ─── */
-.live-badge {
-  font-family:'JetBrains Mono',monospace; font-size:10px;
-  color:var(--red-bright); letter-spacing:0.3em; margin-bottom:0.8rem;
-  animation: blink 1.8s infinite;
-}
-.live-num {
-  font-family:'Bebas Neue',sans-serif;
-  font-size:clamp(80px,17vw,200px); color:var(--red-bright); line-height:1;
-}
-
-/* ─── URGENCY BAR ─── */
-.urg-bar {
-  display:flex; width:100%;
-  border:1px solid var(--red-dim); margin-top:1.5rem;
-}
-.urg-cell {
-  flex:1; padding:1.2rem 0.8rem; text-align:center;
-  border-right:1px solid var(--red-dim);
-  background:rgba(191,38,38,0.05);
-}
-.urg-cell:last-child { border-right:none; }
-.urg-num { font-family:'Bebas Neue',sans-serif; font-size:clamp(28px,3.8vw,50px); color:var(--red-bright); }
-.urg-label { font-size:clamp(10px,1.1vw,13px); color:rgba(230,221,208,0.5); margin-top:3px; line-height:1.3; }
-
-/* ─── QUOTE ─── */
-.quote-text {
-  font-size:clamp(20px,3.2vw,40px); font-style:italic; font-weight:300;
-  line-height:1.55; color:var(--cream); max-width:860px;
-}
-.quote-text strong { color:var(--red-bright); font-style:normal; font-weight:600; }
-
-/* ─── PHONES ─── */
-.phones { display:flex; gap:1.2rem; flex-wrap:wrap; margin-top:1.8rem; }
-.phone-card {
-  background:rgba(13,13,13,0.9); border:1px solid var(--red-dim);
-  padding:1.3rem 1.8rem; min-width:130px;
-  opacity:0; transform:translateY(18px); transition:all 0.5s;
-}
-.slide.active .phone-card:nth-child(1){ opacity:1; transform:none; transition-delay:0.2s; }
-.slide.active .phone-card:nth-child(2){ opacity:1; transform:none; transition-delay:0.5s; }
-.slide.active .phone-card:nth-child(3){ opacity:1; transform:none; transition-delay:0.8s; }
-.slide.active .phone-card:nth-child(4){ opacity:1; transform:none; transition-delay:1.1s; }
-.ph-num { font-family:'Bebas Neue',sans-serif; font-size:50px; color:var(--red-bright); line-height:1; }
-.ph-label { font-family:'JetBrains Mono',monospace; font-size:9px; color:var(--gray); margin-top:5px; letter-spacing:0.08em; line-height:1.6; }
-
-/* ─── FADE-IN ─── */
-.fi { opacity:0; transform:translateY(22px); transition:opacity 0.7s ease,transform 0.7s ease; }
-.slide.active .fi { opacity:1; transform:none; }
-.slide.active .fi:nth-child(1){ transition-delay:0.1s; }
-.slide.active .fi:nth-child(2){ transition-delay:0.28s; }
-.slide.active .fi:nth-child(3){ transition-delay:0.46s; }
-.slide.active .fi:nth-child(4){ transition-delay:0.64s; }
-.slide.active .fi:nth-child(5){ transition-delay:0.82s; }
-
-/* ─── TICKER ─── */
-.ticker-wrap {
-  position:absolute; bottom:2rem; left:0; right:0;
-  overflow:hidden; white-space:nowrap;
-  border-top:1px solid var(--border); padding-top:9px; z-index:5;
-}
-.ticker-inner {
-  display:inline-block; animation:ticker 38s linear infinite;
-  font-family:'JetBrains Mono',monospace; font-size:9px;
-  color:rgba(191,38,38,0.5); letter-spacing:0.18em;
-}
-.tsep { margin:0 2rem; }
-
-/* ─── PETALS ─── */
-.petals-wrap { position:absolute; inset:0; overflow:hidden; z-index:3; pointer-events:none; }
-.petal {
-  position:absolute; top:-40px;
-  background:var(--red);
-  animation:petalFall linear infinite;
-  clip-path: ellipse(50% 50%);
-}
-@keyframes petalFall {
-  0%   { transform:translateY(0) rotate(0deg) translateX(0); opacity:0.85; }
-  80%  { opacity:0.6; }
-  100% { transform:translateY(110vh) rotate(700deg) translateX(30px); opacity:0; }
-}
-
-/* ─── HANDS SVG ─── */
-.hands-svg {
-  position:absolute; inset:0; z-index:3; pointer-events:none;
-  width:100%; height:100%;
-}
-#leftHand  { animation:breatheL 5s ease-in-out infinite; }
-#rightHand { animation:breatheR 5s ease-in-out infinite; }
-@keyframes breatheL {
-  0%,100% { transform:translateX(0); }
-  50%     { transform:translateX(14px); }
-}
-@keyframes breatheR {
-  0%,100% { transform:translateX(0); }
-  50%     { transform:translateX(-14px); }
-}
-.glow-pulse { animation:glowPulse 5s ease-in-out infinite; }
-@keyframes glowPulse {
-  0%,100% { opacity:0.5; }
-  50%     { opacity:0.95; }
-}
-
-/* ─── BOTTOM CHROME ─── */
-#progressBar { position:fixed; bottom:0; left:0; right:0; height:3px; background:rgba(255,255,255,0.05); z-index:800; }
-#progressFill { height:100%; background:var(--red); width:0; transition:width 0.5s linear; }
-#dots { position:fixed; bottom:8px; left:50%; transform:translateX(-50%); display:flex; gap:7px; z-index:800; }
-.dot { width:5px; height:5px; border-radius:50%; background:rgba(255,255,255,0.12); cursor:pointer; transition:all 0.3s; }
-.dot.active { background:var(--red); transform:scale(1.4); }
-#counter { position:fixed; bottom:6px; right:2rem; font-family:'JetBrains Mono',monospace; font-size:9px; color:var(--gray); z-index:800; }
-
-/* ─── NAV ARROWS ─── */
-#navL,#navR {
-  position:fixed; top:50%; z-index:800;
-  background:transparent; border:none;
-  color:rgba(255,255,255,0.12); font-size:22px;
-  cursor:pointer; padding:1rem; transform:translateY(-50%);
-  transition:color 0.2s;
-}
-#navL { left:0.3rem; } #navR { right:0.3rem; }
-#navL:hover,#navR:hover { color:rgba(255,255,255,0.45); }
-
-/* ─── KEYFRAMES ─── */
-@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
-@keyframes ticker { from{transform:translateX(0)} to{transform:translateX(-50%)} }
-
-/* ─── EYEBROW REVEAL ─── */
-.eyebrow.fi {
-  clip-path: inset(0 100% 0 0);
-  opacity: 0; transform: none;
-  transition: clip-path 1s cubic-bezier(0.16,1,0.3,1), opacity 0.3s;
-}
-.slide.active .eyebrow.fi { clip-path: inset(0 0% 0 0); opacity: 1; transform: none; }
-
-/* ─── HEADLINE REVEAL ─── */
-.headline.fi {
-  clip-path: inset(0 0 105% 0);
-  opacity: 0; transform: none;
-  transition: clip-path 0.85s cubic-bezier(0.16,1,0.3,1), opacity 0.3s;
-}
-.slide.active .headline.fi { clip-path: inset(0 0 0% 0); opacity: 1; transform: none; }
-
-/* ─── NUMBER PULSE ─── */
-@keyframes numPulse {
-  0%   { transform: scale(1); }
-  45%  { transform: scale(1.08); }
-  100% { transform: scale(1); }
-}
-.num-pulsed { animation: numPulse 0.45s cubic-bezier(0.34,1.56,0.64,1); }
-
-/* ─── DARK SLIDE AMBIENT GLOW ─── */
-.slide:not(:has(.slide-video)):not(:has(.petals-wrap))::before {
-  content: '';
-  position: absolute; inset: 0; z-index: 0; pointer-events: none;
-  background: radial-gradient(ellipse 50% 35% at 65% 50%, rgba(191,38,38,0.055) 0%, transparent 68%);
-  animation: ambientDrift 9s ease-in-out infinite alternate;
-}
-@keyframes ambientDrift {
-  0%   { opacity: 0.5; transform: scale(1) translate(0,0); }
-  100% { opacity: 1;   transform: scale(1.07) translate(2.5%,1.5%); }
-}
-
-/* ─── STAT SHIMMER ─── */
-.stat-cell { position: relative; overflow: hidden; }
-.slide.active .stat-cell::after {
-  content: '';
-  position: absolute; top: 0; left: -110%; bottom: 0; width: 55%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.025), transparent);
-  animation: statShimmer 4s ease-in-out 0.6s infinite;
-  pointer-events: none;
-}
-@keyframes statShimmer {
-  0%   { left: -110%; }
-  55%  { left: 160%; }
-  100% { left: 160%; }
-}
-</style>
+<link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+
+<!-- START OVERLAY -->
+<div id="startOverlay">
+  <div class="so-title">Vozes Contra o Silêncio</div>
+  <div class="so-sub">4º CAFÉ FILOSÓFICO · IFPE · 16 DE MAIO DE 2026</div>
+  <button class="so-btn" onclick="startPresentation()">[ PRESSIONE ENTER PARA INICIAR ]</button>
+</div>
 
 <!-- AUDIO BAR -->
 <div id="audioBar">
   <div class="ab-logo">VOZES CONTRA O SILÊNCIO · CAFÉ FILOSÓFICO IFPE · 16.05.2026</div>
   <div class="ab-right">
-    <span id="audioStatus">↑ carregue a narração</span>
-    <label id="audioUploadLabel" for="audioInput">[ CARREGAR ÁUDIO ]</label>
-    <input type="file" id="audioInput" accept="audio/*">
-    <button id="playBtn" onclick="toggleAudio()">▶ PLAY</button>
-    <button id="autoBtn" onclick="toggleAuto()">⏸ AUTO</button>
+    <span id="audioStatus"></span>
+    <span id="slideNum">SLIDE 1</span>
   </div>
 </div>
 <div id="timerLine"><div id="timerFill"></div></div>
@@ -416,9 +29,9 @@ body::after {
 <!-- SLIDES -->
 <div id="slides">
 
-  <!-- ① ABERTURA · 15s · video vela -->
-  <div class="slide active" data-duration="15">
-    <video class="slide-video" src="video_vela.mp4" autoplay muted loop playsinline></video>
+  <!-- ① ABERTURA · s01.mp3 · fallback 20s · video vela -->
+  <div class="slide active" data-audio="s01.mp3" data-duration="20">
+    <video class="slide-video" src="videos/video_vela.mp4" muted loop playsinline></video>
     <div class="video-overlay" style="background:rgba(0,0,0,0.55)"></div>
     <div class="eyebrow fi">Brasil · 2025 · Fórum Brasileiro de Segurança Pública</div>
     <div class="giant fi"><span class="r">1.5</span>68</div>
@@ -429,9 +42,9 @@ body::after {
     </div>
   </div>
 
-  <!-- ② BRASIL DADOS · 20s · video lágrima -->
-  <div class="slide" data-duration="20">
-    <video class="slide-video" src="video_lagrima.mp4" muted loop playsinline></video>
+  <!-- ② BRASIL DADOS · s02.mp3 · fallback 22s · video lágrima -->
+  <div class="slide" data-audio="s02.mp3" data-duration="22">
+    <video class="slide-video" src="videos/video_lagrima.mp4" muted loop playsinline></video>
     <div class="video-overlay" style="background:rgba(0,0,0,0.60)"></div>
     <div class="eyebrow fi">panorama nacional</div>
     <div class="headline fi">O retrato<br>do Brasil</div>
@@ -459,7 +72,7 @@ body::after {
     </div>
   </div>
 
-  <!-- ③ CONTADOR AO VIVO · 10s · dark -->
+  <!-- ③ CONTADOR AO VIVO · timer 10s -->
   <div class="slide center" data-duration="10">
     <div class="live-badge fi">● AO VIVO — ESTIMATIVA 2026</div>
     <div class="live-num fi" id="liveNum">0</div>
@@ -467,8 +80,8 @@ body::after {
     <p class="mono-note fi">média diária de 4,3 casos · FBSP 2025</p>
   </div>
 
-  <!-- ④ PERNAMBUCO DADOS · 20s · dark -->
-  <div class="slide" data-duration="20">
+  <!-- ④ PERNAMBUCO DADOS · s04.mp3 · fallback 22s -->
+  <div class="slide" data-audio="s04.mp3" data-duration="22">
     <div class="two-col">
       <div>
         <div class="eyebrow fi">Estado de Pernambuco</div>
@@ -502,9 +115,9 @@ body::after {
     </div>
   </div>
 
-  <!-- ⑤ PERNAMBUCO CASOS · 20s · video cadeira -->
-  <div class="slide" data-duration="20">
-    <video class="slide-video" src="video_cadeira.mp4" muted loop playsinline></video>
+  <!-- ⑤ PERNAMBUCO CASOS · s05.mp3 · fallback 30s · video cadeira -->
+  <div class="slide" data-audio="s05.mp3" data-duration="30">
+    <video class="slide-video" src="videos/video_cadeira.mp4" muted loop playsinline></video>
     <div class="video-overlay" style="background:rgba(0,0,0,0.58)"></div>
     <div class="eyebrow fi">Pernambuco · casos recentes</div>
     <div class="headline fi" style="font-size:clamp(30px,4.8vw,62px)">
@@ -530,8 +143,8 @@ body::after {
     </div>
   </div>
 
-  <!-- ⑥ LEI MARIA DA PENHA · 18s · dark -->
-  <div class="slide" data-duration="18">
+  <!-- ⑥ LEI MARIA DA PENHA · s06.mp3 · fallback 22s -->
+  <div class="slide" data-audio="s06.mp3" data-duration="22">
     <div class="eyebrow fi">Lei Maria da Penha · 2006 — 2026</div>
     <div class="headline fi" style="font-size:clamp(48px,8vw,106px)">20 anos.<br><span style="color:var(--red-bright)">Os números</span><br>crescem.</div>
     <div class="red-rule fi"></div>
@@ -547,8 +160,8 @@ body::after {
     </p>
   </div>
 
-  <!-- ⑦ PERFIL DAS VÍTIMAS · 20s · dark -->
-  <div class="slide" data-duration="20">
+  <!-- ⑦ PERFIL DAS VÍTIMAS · s07.mp3 · fallback 35s -->
+  <div class="slide" data-audio="s07.mp3" data-duration="35">
     <div class="two-col">
       <div>
         <div class="eyebrow fi">quem são elas</div>
@@ -577,8 +190,8 @@ body::after {
     </div>
   </div>
 
-  <!-- ⑧ SÃO PAULO · 22s · dark -->
-  <div class="slide" data-duration="22">
+  <!-- ⑧ SÃO PAULO · s08.mp3 · fallback 28s -->
+  <div class="slide" data-audio="s08.mp3" data-duration="28">
     <div class="two-col">
       <div>
         <div class="eyebrow fi">Estado de São Paulo</div>
@@ -612,7 +225,7 @@ body::after {
     </div>
   </div>
 
-  <!-- ⑨ QUOTE + PÉTALAS · 10s -->
+  <!-- ⑨ QUOTE + PÉTALAS · timer 10s -->
   <div class="slide center" data-duration="10">
     <div class="petals-wrap" id="petalsWrap"></div>
     <div class="quote-text fi">
@@ -625,9 +238,8 @@ body::after {
     <p class="mono-note fi">começa muito antes · e quando chega ao fim — já era tarde demais</p>
   </div>
 
-  <!-- ⑩ CHAMADA AÇÃO + MÃOS · 18s -->
-  <div class="slide" data-duration="18">
-    <!-- HANDS SVG -->
+  <!-- ⑩ CHAMADA PARA AÇÃO · s10.mp3 · fallback 28s -->
+  <div class="slide" data-audio="s10.mp3" data-duration="28">
     <svg class="hands-svg" viewBox="0 0 1200 600" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <radialGradient id="glow" cx="50%" cy="50%" r="50%">
@@ -641,22 +253,18 @@ body::after {
         </radialGradient>
         <filter id="soft"><feGaussianBlur stdDeviation="2.5"/></filter>
       </defs>
-      <!-- AMBIENT GLOW RIGHT -->
       <ellipse cx="920" cy="295" rx="260" ry="140" fill="url(#glow)" class="glow-pulse"/>
-      <!-- RIGHT HAND A — fingers from right edge -->
       <g id="rightHand" transform="translate(1200,0) scale(-1,1)">
         <path d="M 0,218 L 488,210 Q 498,210 498,218 Q 498,226 488,226 L 0,234 Z" fill="rgba(226,217,204,0.86)" filter="url(#soft)"/>
         <path d="M 0,248 L 500,238 Q 510,238 510,246 Q 510,254 500,254 L 0,264 Z" fill="rgba(226,217,204,0.90)" filter="url(#soft)"/>
         <path d="M 0,278 L 490,271 Q 500,271 500,279 Q 500,287 490,287 L 0,294 Z" fill="rgba(226,217,204,0.87)" filter="url(#soft)"/>
         <path d="M 0,306 L 462,302 Q 470,302 470,309 Q 470,316 462,316 L 0,320 Z" fill="rgba(226,217,204,0.78)" filter="url(#soft)"/>
       </g>
-      <!-- RIGHT HAND B — second hand slightly lower, also from right -->
       <g id="leftHand" transform="translate(1200,60) scale(-1,1)">
         <path d="M 0,218 L 460,213 Q 470,213 470,220 Q 470,227 460,227 L 0,234 Z" fill="rgba(226,217,204,0.72)" filter="url(#soft)"/>
         <path d="M 0,248 L 472,241 Q 482,241 482,248 Q 482,255 472,255 L 0,262 Z" fill="rgba(226,217,204,0.76)" filter="url(#soft)"/>
         <path d="M 0,278 L 455,272 Q 465,272 465,279 Q 465,286 455,286 L 0,292 Z" fill="rgba(226,217,204,0.70)" filter="url(#soft)"/>
       </g>
-      <!-- TIP GLOW near fingertips -->
       <ellipse cx="730" cy="255" rx="45" ry="28" fill="url(#tipGlow)" class="glow-pulse"/>
     </svg>
     <div class="eyebrow fi">se você ou alguém que você conhece precisa de ajuda</div>
@@ -669,9 +277,24 @@ body::after {
     </div>
   </div>
 
-  <!-- ⑪ ENCERRAMENTO · 15s · video vela -->
-  <div class="slide center" data-duration="15">
-    <video class="slide-video" src="video_vela.mp4" muted loop playsinline></video>
+  <!-- ⑪ PRÉ-TÍTULO VÍDEO INSTAGRAM · timer 8s -->
+  <div class="slide center" data-duration="8">
+    <div class="eyebrow fi">Relato Real · Redes Sociais</div>
+    <div class="headline fi" style="font-size:clamp(36px,6vw,84px)">
+      Uma voz que<br><span style="color:var(--red-bright)">precisava ser ouvida.</span>
+    </div>
+    <div class="red-rule c fi"></div>
+    <p class="mono-note fi" style="letter-spacing:0.2em">A SEGUIR · DEPOIMENTO REAL</p>
+  </div>
+
+  <!-- ⑫ VÍDEO INSTAGRAM COM SOM · vídeo termina → avança · fallback 120s -->
+  <div class="slide instagram-slide" data-duration="120">
+    <video class="slide-video" src="videos/video_instagram.mp4" playsinline></video>
+  </div>
+
+  <!-- ⑬ ENCERRAMENTO · timer 12s · video vela -->
+  <div class="slide center" data-duration="12">
+    <video class="slide-video" src="videos/video_vela.mp4" muted loop playsinline></video>
     <div class="video-overlay" style="background:rgba(0,0,0,0.68)"></div>
     <p class="fi" style="font-family:'JetBrains Mono',monospace;font-size:clamp(9px,1vw,11px);letter-spacing:0.28em;color:var(--red);margin-bottom:1.8rem">4º ENCONTRO DO CAFÉ FILOSÓFICO · IFPE · 16 DE MAIO DE 2026</p>
     <div class="headline fi" style="font-size:clamp(34px,5.5vw,76px);line-height:1.05;max-width:750px">
@@ -693,228 +316,10 @@ body::after {
 <!-- BOTTOM CHROME -->
 <div id="progressBar"><div id="progressFill"></div></div>
 <div id="dots"></div>
-<div id="counter">1 / 11</div>
+<div id="counter">1 / 13</div>
 <button id="navL" onclick="prevSlide()">‹</button>
 <button id="navR" onclick="nextSlide()">›</button>
 
-<audio id="bgAudio"></audio>
-
-<script>
-const slides    = document.querySelectorAll('.slide');
-const total     = slides.length;
-let current     = 0;
-let autoRunning = true;
-let autoTimer   = null;
-let isPlaying   = false;
-
-// ── DOTS ──
-const dotsEl = document.getElementById('dots');
-slides.forEach((_, i) => {
-  const d = document.createElement('div');
-  d.className = 'dot' + (i === 0 ? ' active' : '');
-  d.onclick = () => goTo(i);
-  dotsEl.appendChild(d);
-});
-
-// ── NAVIGATE ──
-function goTo(idx) {
-  if (idx < 0 || idx >= total) return;
-
-  // pause outgoing video
-  const outVid = slides[current].querySelector('.slide-video');
-  if (outVid) outVid.pause();
-
-  slides[current].classList.remove('active');
-  current = idx;
-  slides[current].classList.add('active');
-
-  // play incoming video
-  const inVid = slides[current].querySelector('.slide-video');
-  if (inVid) inVid.play().catch(() => {});
-
-  // update chrome
-  document.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i === current));
-  document.getElementById('counter').textContent = (current + 1) + ' / ' + total;
-  document.getElementById('progressFill').style.width = ((current + 1) / total * 100) + '%';
-
-  triggerAnimations(current);
-  if (autoRunning) scheduleNext();
-}
-
-function nextSlide() { goTo((current + 1) % total); }
-function prevSlide() { goTo((current - 1 + total) % total); }
-
-// ── AUTO ADVANCE ──
-function scheduleNext() {
-  clearTimeout(autoTimer);
-  const dur = parseInt(slides[current].dataset.duration) * 1000;
-  const fill = document.getElementById('timerFill');
-  fill.style.transition = 'none'; fill.style.width = '0';
-  requestAnimationFrame(() => requestAnimationFrame(() => {
-    fill.style.transition = `width ${dur}ms linear`;
-    fill.style.width = '100%';
-  }));
-  if (current < total - 1) {
-    autoTimer = setTimeout(() => goTo(current + 1), dur);
-  }
-}
-
-function toggleAuto() {
-  autoRunning = !autoRunning;
-  const btn = document.getElementById('autoBtn');
-  if (autoRunning) {
-    btn.textContent = '⏸ AUTO'; btn.style.color = '';
-    scheduleNext();
-  } else {
-    btn.textContent = '▶ AUTO'; btn.style.color = 'var(--red)';
-    clearTimeout(autoTimer);
-    document.getElementById('timerFill').style.width = '0';
-  }
-}
-
-// ── SLIDE ANIMATIONS ──
-function triggerAnimations(idx) {
-  const s = slides[idx];
-  // bars
-  s.querySelectorAll('.bar-fill').forEach(b => {
-    b.style.width = '0';
-    setTimeout(() => { b.style.width = b.dataset.pct + '%'; }, 350);
-  });
-  // counters
-  s.querySelectorAll('[data-target]').forEach(el => {
-    el.textContent = '0'; animateCount(el);
-  });
-  // live counter
-  if (s.querySelector('#liveNum')) updateLive();
-}
-
-function animateCount(el) {
-  const target = parseInt(el.dataset.target);
-  const t0 = Date.now();
-  (function tick() {
-    const p = Math.min((Date.now() - t0) / 1800, 1);
-    const e = 1 - Math.pow(1 - p, 3);
-    el.textContent = Math.round(e * target).toLocaleString('pt-BR');
-    if (p < 1) {
-      requestAnimationFrame(tick);
-    } else {
-      el.classList.add('num-pulsed');
-      el.addEventListener('animationend', () => el.classList.remove('num-pulsed'), { once: true });
-    }
-  })();
-}
-
-function updateLive() {
-  const el = document.getElementById('liveNum');
-  if (!el) return;
-  const days = (Date.now() - new Date('2026-01-01').getTime()) / 86400000;
-  el.dataset.target = Math.floor(days * 4.3);
-  animateCount(el);
-}
-
-// ── PETALS ──
-function initPetals() {
-  const wrap = document.getElementById('petalsWrap');
-  if (!wrap) return;
-  for (let i = 0; i < 28; i++) {
-    const p = document.createElement('div');
-    p.className = 'petal';
-    const w = 7 + Math.random() * 11;
-    p.style.cssText = `
-      left:${Math.random() * 102}vw;
-      width:${w}px; height:${w * 1.55}px;
-      opacity:${0.45 + Math.random() * 0.55};
-      animation-duration:${3.5 + Math.random() * 5}s;
-      animation-delay:${-Math.random() * 9}s;
-      border-radius:${40 + Math.random()*20}% ${20+Math.random()*20}% ${40+Math.random()*20}% ${20+Math.random()*20}%;
-      transform:rotate(${Math.random()*360}deg);
-    `;
-    wrap.appendChild(p);
-  }
-}
-
-// ── AUDIO ──
-const audio = document.getElementById('bgAudio');
-document.getElementById('audioInput').addEventListener('change', function(e) {
-  const f = e.target.files[0]; if (!f) return;
-  audio.src = URL.createObjectURL(f);
-  audio.loop = false;
-  const btn = document.getElementById('playBtn');
-  btn.style.display = 'block';
-  const st = document.getElementById('audioStatus');
-  st.textContent = '✓ ' + (f.name.length > 28 ? f.name.slice(0,28)+'…' : f.name);
-  st.style.color = 'var(--red)';
-});
-
-// auto-load audio if present in same folder
-(function tryAutoLoad() {
-  const btn    = document.getElementById('playBtn');
-  const status = document.getElementById('audioStatus');
-
-  audio.src = 'audio_narracao.mp3';
-  audio.preload = 'auto';
-  audio.load();
-
-  audio.addEventListener('canplaythrough', () => {
-    btn.style.display = 'block';
-    status.textContent = '✓ audio_narracao.mp3';
-    status.style.color = 'var(--red)';
-  }, { once: true });
-
-  // play() DEVE ser chamado dentro do event handler para ter user-activation.
-  // Verificamos se já passaram 5s desde o carregamento; se não, mantemos
-  // o listener ativo até que passe.
-  const pageLoad = Date.now();
-
-  function onGesture() {
-    if (isPlaying) { removeListeners(); return; }
-    if (Date.now() - pageLoad < 5000) return; // ainda cedo demais
-    removeListeners();
-    audio.play().then(() => {
-      btn.textContent = '⏸ PAUSE';
-      isPlaying = true;
-    }).catch(() => {});
-  }
-
-  function removeListeners() {
-    document.removeEventListener('click',      onGesture, true);
-    document.removeEventListener('keydown',    onGesture, true);
-    document.removeEventListener('touchstart', onGesture, true);
-  }
-
-  document.addEventListener('click',      onGesture, true);
-  document.addEventListener('keydown',    onGesture, true);
-  document.addEventListener('touchstart', onGesture, true);
-})();
-
-function toggleAudio() {
-  if (isPlaying) {
-    audio.pause();
-    document.getElementById('playBtn').textContent = '▶ PLAY';
-    isPlaying = false;
-  } else {
-    audio.play().catch(() => {});
-    document.getElementById('playBtn').textContent = '⏸ PAUSE';
-    isPlaying = true;
-  }
-}
-
-// ── KEYBOARD ──
-document.addEventListener('keydown', e => {
-  if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); nextSlide(); }
-  if (e.key === 'ArrowLeft')  { e.preventDefault(); prevSlide(); }
-  if (e.key === 'Escape')     toggleAuto();
-  if (e.key === 'p' || e.key === 'P') toggleAudio();
-});
-
-// ── INIT ──
-window.addEventListener('load', () => {
-  initPetals();
-  triggerAnimations(0);
-  const v0 = slides[0].querySelector('.slide-video');
-  if (v0) v0.play().catch(() => {});
-  scheduleNext();
-});
-</script>
+<script src="js/app.js"></script>
 </body>
 </html>
